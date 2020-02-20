@@ -286,9 +286,11 @@ public class TsFileProcessor {
         while (!flushingMemTables.isEmpty()) {
           flushingMemTables.wait(60_000);
           if (System.currentTimeMillis() - startTime > 60_000) {
-            logger.warn("{} has spent {}s for waiting flushing one memtable; {} left.",
+            logger.warn("{} has spent {}s for waiting flushing one memtable; {} left. FlushingManager info: {}",
                 this.tsFileResource.getFile().getAbsolutePath(),
-                (System.currentTimeMillis() - startTime)/1000,flushingMemTables.size());
+                (System.currentTimeMillis() - startTime)/1000, flushingMemTables.size(),
+                FlushManager.getInstance().toString()
+                );
           }
 
         }

@@ -122,4 +122,10 @@ public class FlushManager implements FlushManagerMBean, IService {
 
     private static FlushManager instance = new FlushManager();
   }
+
+  public String toString() {
+    return String.format("TSProcessors in the queue: %d, TaskPool size %d + %d,",
+        tsFileProcessorQueue.size(), flushPool.getWorkingTasksNumber(),
+        flushPool.getWaitingTasksNumber());
+  }
 }
