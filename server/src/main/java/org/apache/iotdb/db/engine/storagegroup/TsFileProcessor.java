@@ -322,7 +322,7 @@ public class TsFileProcessor {
       // is set true, we need to generate a NotifyFlushMemTable as a signal task and submit it to
       // the FlushManager.
       IMemTable tmpMemTable = workMemTable == null ? new NotifyFlushMemTable() : workMemTable;
-      if (logger.isDebugEnabled()) {
+      //if (logger.isDebugEnabled()) {
         if (tmpMemTable.isSignalMemTable()) {
           logger.error(
               "storage group {} add a signal memtable into flushing memtable list when async close",
@@ -331,7 +331,7 @@ public class TsFileProcessor {
           logger
               .debug("storage group {} async flush a memtable when async close", storageGroupName);
         }
-      }
+      //}
       try {
         addAMemtableIntoFlushingList(tmpMemTable);
       } catch (IOException e) {

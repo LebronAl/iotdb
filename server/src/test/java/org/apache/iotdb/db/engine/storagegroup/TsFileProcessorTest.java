@@ -52,6 +52,8 @@ import org.apache.iotdb.tsfile.write.writer.RestorableTsFileIOWriter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TsFileProcessorTest {
 
@@ -65,7 +67,7 @@ public class TsFileProcessorTest {
   private TSEncoding encoding = TSEncoding.RLE;
   private Map<String, String> props = Collections.emptyMap();
   private QueryContext context;
-
+  private static Logger logger = LoggerFactory.getLogger(TsFileProcessorTest.class);
   @Before
   public void setUp() throws Exception {
     EnvironmentUtils.envSetUp();
@@ -82,6 +84,7 @@ public class TsFileProcessorTest {
 
   @Test
   public void testWriteAndFlush() throws IOException, QueryProcessException {
+    logger.error("testWriteAndFlush begin..");
     processor = new TsFileProcessor(storageGroup, SystemFileFactory.INSTANCE.getFile(filePath),
         SchemaUtils.constructSchema(deviceId), SysTimeVersionController.INSTANCE, x -> {
     },
@@ -130,6 +133,7 @@ public class TsFileProcessorTest {
 
   @Test
   public void testWriteAndRestoreMetadata() throws IOException, QueryProcessException {
+    logger.error("testWriteAndRestoreMetadata begin..");
     processor = new TsFileProcessor(storageGroup, SystemFileFactory.INSTANCE.getFile(filePath),
         SchemaUtils.constructSchema(deviceId), SysTimeVersionController.INSTANCE, x -> {
     },
@@ -199,6 +203,7 @@ public class TsFileProcessorTest {
 
   @Test
   public void testMultiFlush() throws IOException, QueryProcessException {
+    logger.error("testWriteAndRestoreMetadata begin..");
     processor = new TsFileProcessor(storageGroup, SystemFileFactory.INSTANCE.getFile(filePath),
         SchemaUtils.constructSchema(deviceId), SysTimeVersionController.INSTANCE, x -> {
     },
@@ -234,6 +239,7 @@ public class TsFileProcessorTest {
 
   @Test
   public void testWriteAndClose() throws IOException, QueryProcessException {
+    logger.error("testWriteAndRestoreMetadata begin..");
     processor = new TsFileProcessor(storageGroup, SystemFileFactory.INSTANCE.getFile(filePath),
         SchemaUtils.constructSchema(deviceId), SysTimeVersionController.INSTANCE,
         unsealedTsFileProcessor -> {
