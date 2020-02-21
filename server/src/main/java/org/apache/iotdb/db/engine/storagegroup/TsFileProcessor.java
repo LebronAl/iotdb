@@ -487,11 +487,12 @@ public class TsFileProcessor {
         getLogNode().notifyEndFlush();
       }
     }
-
+    logger.error("try get lock to release a memtable (signal={})", memTableToFlush.isSignalMemTable());
     // for sync flush
     synchronized (memTableToFlush) {
       releaseFlushedMemTable(memTableToFlush);
       memTableToFlush.notifyAll();
+      logger.error("released a memtable (signal={}), flushingMemtables size ={}", memTableToFlush.isSignalMemTable(), flushingMemTables.size());
     }
 
     if (shouldClose && flushingMemTables.isEmpty()) {
