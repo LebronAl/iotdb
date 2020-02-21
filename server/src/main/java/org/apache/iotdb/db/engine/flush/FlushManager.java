@@ -104,6 +104,8 @@ public class FlushManager implements FlushManagerMBean, IService {
         tsFileProcessorQueue.add(tsFileProcessor);
         tsFileProcessor.setManagedByFlushManager(true);
         flushPool.submit(new FlushThread());
+      } else {
+        logger.info("tsFileProcessor {} is already in the flushPool", tsFileProcessor.getStorageGroupName());
       }
     }
   }

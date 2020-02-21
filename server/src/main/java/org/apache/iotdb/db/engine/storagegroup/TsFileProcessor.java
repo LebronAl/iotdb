@@ -291,7 +291,7 @@ public class TsFileProcessor {
                 (System.currentTimeMillis() - startTime)/1000,
                 flushingMemTables.size(),
                 flushingMemTables.getFirst(),
-                FlushManager.getInstance().toString()
+                FlushManager.getInstance()
                 );
           }
 
@@ -324,7 +324,7 @@ public class TsFileProcessor {
       IMemTable tmpMemTable = workMemTable == null ? new NotifyFlushMemTable() : workMemTable;
       if (logger.isDebugEnabled()) {
         if (tmpMemTable.isSignalMemTable()) {
-          logger.debug(
+          logger.error(
               "storage group {} add a signal memtable into flushing memtable list when async close",
               storageGroupName);
         } else {
@@ -352,7 +352,7 @@ public class TsFileProcessor {
     try {
       tmpMemTable = workMemTable == null ? new NotifyFlushMemTable() : workMemTable;
       if (tmpMemTable.isSignalMemTable()) {
-        logger.debug("add a signal memtable into flushing memtable list when sync flush");
+        logger.error("add a signal memtable into flushing memtable list when sync flush");
       }
       addAMemtableIntoFlushingList(tmpMemTable);
     } finally {
