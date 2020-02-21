@@ -167,7 +167,7 @@ public class TsFileProcessorTest {
         assertEquals(num, timeValuePair.getValue().getInt());
       }
     }
-
+    logger.error("syncFlush..");
     // flush synchronously
     processor.syncFlush();
 
@@ -197,6 +197,7 @@ public class TsFileProcessorTest {
       }
     }
     restorableTsFileIOWriter.close();
+    logger.error("syncClose..");
     processor.syncClose();
   }
 

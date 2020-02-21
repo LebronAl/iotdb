@@ -440,6 +440,10 @@ public class TsFileProcessor {
         logger.warn(
             "put the memtable (signal={}) out of flushingMemtables but it is not in the queue.",
             memTable.isSignalMemTable());
+      } else {
+        logger.warn(
+            "memtable (signal={}) is removed from the queue. {} left.",
+            memTable.isSignalMemTable(), flushingMemTables.size());
       }
       memTable.release();
       MemTablePool.getInstance().putBack(memTable, storageGroupName);
