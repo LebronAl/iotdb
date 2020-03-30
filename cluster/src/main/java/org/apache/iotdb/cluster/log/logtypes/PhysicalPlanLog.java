@@ -19,17 +19,18 @@
 
 package org.apache.iotdb.cluster.log.logtypes;
 
-import static org.apache.iotdb.cluster.log.Log.Types.PHYSICAL_PLAN;
+import org.apache.iotdb.cluster.log.Log;
+import org.apache.iotdb.db.qp.physical.PhysicalPlan;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Objects;
-import org.apache.iotdb.cluster.log.Log;
-import org.apache.iotdb.db.qp.physical.PhysicalPlan;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static org.apache.iotdb.cluster.log.Log.Types.PHYSICAL_PLAN;
 
 /**
  * PhysicalPlanLog contains a non-partitioned physical plan like set storage group.
@@ -39,7 +40,11 @@ public class PhysicalPlanLog extends Log {
   private static final Logger logger = LoggerFactory.getLogger(PhysicalPlanLog.class);
   private PhysicalPlan plan;
 
-  public PhysicalPlanLog() {
+  public PhysicalPlanLog(){}
+
+  public PhysicalPlanLog(long index,long term) {
+    this.setCurrLogIndex(index);
+    this.setCurrLogTerm(term);
   }
 
   public PhysicalPlanLog(PhysicalPlan plan) {
