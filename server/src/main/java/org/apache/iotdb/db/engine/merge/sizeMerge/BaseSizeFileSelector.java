@@ -28,7 +28,6 @@ import org.apache.iotdb.db.engine.merge.IMergeFileSelector;
 import org.apache.iotdb.db.engine.merge.manage.MergeResource;
 import org.apache.iotdb.db.engine.merge.utils.MergeFileSelectorUtils;
 import org.apache.iotdb.db.engine.merge.utils.MergeMemCalculator;
-import org.apache.iotdb.db.engine.merge.utils.SelectorContext;
 import org.apache.iotdb.db.engine.storagegroup.TsFileResource;
 import org.apache.iotdb.db.exception.MergeException;
 import org.apache.iotdb.db.utils.UpgradeUtils;
@@ -44,7 +43,6 @@ public abstract class BaseSizeFileSelector implements IMergeFileSelector {
   protected long memoryBudget;
   protected long timeLimit;
 
-  protected SelectorContext selectorContext;
   protected MergeMemCalculator memCalculator;
   protected MergeResource resource;
 
@@ -52,10 +50,14 @@ public abstract class BaseSizeFileSelector implements IMergeFileSelector {
   protected MergeSizeSelectorStrategy mergeSizeSelectorStrategy;
   protected int minChunkPointNum;
 
+  protected long startTime;
+  protected long timeConsumption;
+  protected long totalCost;
+
   public BaseSizeFileSelector(Collection<TsFileResource> seqFiles, long budget,
-      long timeLowerBound) {
-    this.selectorContext = new SelectorContext();
+      long timeLowerBound,String storageGroupName) {
     this.resource = new MergeResource();
+    this.resource.setStorageGroupName(storageGroupName);
     this.memCalculator = new MergeMemCalculator(this.resource);
     this.memoryBudget = budget;
     this.seqFiles = seqFiles.stream().filter(
@@ -76,9 +78,9 @@ public abstract class BaseSizeFileSelector implements IMergeFileSelector {
   }
 
   @Override
-  public Pair<MergeResource, SelectorContext> selectMergedFiles() throws MergeException {
-    this.selectorContext.setStartTime(System.currentTimeMillis());
-    this.selectorContext.clearTimeConsumption();
+  public MergeResource selectMergedFiles() throws MergeException {
+    startTime = System.currentTimeMillis();
+    timeConsumption = 0;
     try {
       logger.info("Selecting merge candidates from {} seqFile", seqFiles.size());
       List<TsFileResource> selectedSeqFiles = select();
@@ -86,29 +88,46 @@ public abstract class BaseSizeFileSelector implements IMergeFileSelector {
       resource.removeOutdatedSeqReaders();
       if (resource.getSeqFiles().isEmpty()) {
         logger.info("No merge candidates are found");
-        return new Pair<>(resource, selectorContext);
+      }
+      if (logger.isInfoEnabled()) {
+        logger.info("Selected merge candidates, {} seqFiles, total memory cost {}, "
+                + "time consumption {}ms", resource.getSeqFiles().size(), totalCost,
+            System.currentTimeMillis() - startTime);
+      }
+
+      if (resource.getSeqFiles().size() == 0 || resource.getUnseqFiles().size() == 0) {
+        logger.info("{} cannot select merge candidates under the budget {}", resource.getStorageGroupName(),
+            memoryBudget);
+      }
+      // avoid pending tasks holds the metadata and streams
+      resource.clear();
+      resource.setTaskName(resource.getStorageGroupName() + "-" + System.currentTimeMillis());
+      // do not cache metadata until true candidates are chosen, or too much metadata will be
+      // cached during selection
+      resource.setCacheDeviceMeta(true);
+
+      for (TsFileResource tsFileResource : resource.getSeqFiles()) {
+        tsFileResource.setMerging(true);
+      }
+      for (TsFileResource tsFileResource : resource.getUnseqFiles()) {
+        tsFileResource.setMerging(true);
       }
     } catch (IOException e) {
       throw new MergeException(e);
     }
-    if (logger.isInfoEnabled()) {
-      logger.info("Selected merge candidates, {} seqFiles, total memory cost {}, "
-              + "time consumption {}ms", resource.getSeqFiles().size(), selectorContext.getTotalCost(),
-          System.currentTimeMillis() - selectorContext.getStartTime());
-    }
-    return new Pair<>(resource, selectorContext);
+    return resource;
   }
 
   public List<TsFileResource> select() throws IOException {
-    this.selectorContext.setStartTime(System.currentTimeMillis());
-    this.selectorContext.clearTimeConsumption();
-    this.selectorContext.clearTotalCost();
+    startTime = System.currentTimeMillis();
+    timeConsumption = 0;
+    totalCost = 0;
     int tmpStartIdx = -1;
     int tmpEndIdx = -1;
     int startIdx = -1;
     int endIdx = -1;
     int seqIndex = 0;
-    while (seqIndex < seqFiles.size() && this.selectorContext.getTimeConsumption() < timeLimit) {
+    while (seqIndex < seqFiles.size() && this.timeConsumption < timeLimit) {
       TsFileResource seqFile = seqFiles.get(seqIndex);
       if (!UpgradeUtils.isNeedUpgrade(seqFile)) {
         if (isSmallFile(seqFile)) {

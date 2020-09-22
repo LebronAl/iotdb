@@ -22,10 +22,10 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.apache.iotdb.db.conf.IoTDBDescriptor;
 import org.apache.iotdb.db.engine.merge.manage.MergeResource;
 import org.apache.iotdb.db.engine.merge.utils.MergeFileSelectorUtils;
 import org.apache.iotdb.db.engine.merge.utils.MergeMemCalculator;
-import org.apache.iotdb.db.engine.merge.utils.SelectorContext;
 import org.apache.iotdb.db.engine.storagegroup.TsFileResource;
 import org.apache.iotdb.db.exception.MergeException;
 import org.apache.iotdb.tsfile.utils.Pair;
@@ -46,7 +46,13 @@ public abstract class BaseFileSelector implements IMergeFileSelector {
   protected List<TsFileResource> unseqFiles;
 
   protected BaseFileSelector(Collection<TsFileResource> seqFiles,
-      Collection<TsFileResource> unseqFiles, long budget, long timeLowerBound) {
+      Collection<TsFileResource> unseqFiles, long dataTTL,String storageGroupName) {
+    if (seqFiles.isEmpty() || unseqFiles.isEmpty()) {
+      logger.info("{} no files to be merged", storageGroupName);
+      return;
+    }
+    long budget = IoTDBDescriptor.getInstance().getConfig().getMergeMemoryBudget();
+    long timeLowerBound = System.currentTimeMillis() - dataTTL;
     this.selectorContext = new SelectorContext();
     this.resource = new MergeResource();
     this.memCalculator = new MergeMemCalculator(this.resource);

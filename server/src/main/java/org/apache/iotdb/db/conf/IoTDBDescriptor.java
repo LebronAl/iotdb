@@ -33,7 +33,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.iotdb.db.conf.directories.DirectoryManager;
-import org.apache.iotdb.db.engine.merge.seqMerge.SeqMergeFileStrategy;
+import org.apache.iotdb.db.engine.merge.seqMerge.MergeOverlappedFilesStrategy;
 import org.apache.iotdb.db.engine.merge.sizeMerge.MergeSizeSelectorStrategy;
 import org.apache.iotdb.db.engine.merge.sizeMerge.SizeMergeFileStrategy;
 import org.apache.iotdb.db.exception.query.QueryProcessException;
@@ -357,10 +357,10 @@ public class IoTDBDescriptor {
           "chunk_merge_point_threshold", Integer.toString(conf.getChunkMergePointThreshold()))));
       conf.setMergeFileTimeBlock(Long.parseLong(properties.getProperty
           ("merge_file_time_block", Long.toString(conf.getMergeFileSelectionTimeBudget()))));
-      conf.setSeqMergeFileStrategy(SeqMergeFileStrategy.valueOf(properties.getProperty(
-          "seq_merge_file_strategy", conf.getSeqMergeFileStrategy().toString())));
+      conf.setMergeOverlappedFilesStrategy(MergeOverlappedFilesStrategy.valueOf(properties.getProperty(
+          "overlapped_file_merge_strategy", conf.getMergeOverlappedFilesStrategy().toString())));
       conf.setSizeMergeFileStrategy(SizeMergeFileStrategy.valueOf(properties.getProperty(
-          "size_merge_file_strategy", conf.getSizeMergeFileStrategy().toString())));
+          "small_file_merge_strategy", conf.getSizeMergeFileStrategy().toString())));
       conf.setMergeSizeSelectorStrategy(MergeSizeSelectorStrategy.valueOf(properties.getProperty(
           "merge_size_selector_strategy", conf.getMergeSizeSelectorStrategy().toString())));
 

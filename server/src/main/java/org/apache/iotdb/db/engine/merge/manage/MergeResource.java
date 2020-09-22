@@ -20,7 +20,9 @@
 package org.apache.iotdb.db.engine.merge.manage;
 
 import static org.apache.iotdb.db.engine.merge.seqMerge.inplace.task.InplaceMergeTask.MERGE_SUFFIX;
+import static org.apache.iotdb.db.engine.storagegroup.StorageGroupProcessor.MERGING_MODIFICATION_FILE_NAME;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,6 +33,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.iotdb.db.engine.modification.Modification;
+import org.apache.iotdb.db.engine.modification.ModificationFile;
 import org.apache.iotdb.db.engine.storagegroup.TsFileResource;
 import org.apache.iotdb.db.metadata.PartialPath;
 import org.apache.iotdb.db.query.reader.resource.CachedUnseqResourceMergeReader;
@@ -51,6 +54,11 @@ import org.apache.iotdb.tsfile.write.writer.RestorableTsFileIOWriter;
  */
 public class MergeResource {
 
+  private String taskName;
+  private String storageGroupName;
+  private Modification mergingModification;
+  private String storageGroupSysDir;
+
   private List<TsFileResource> seqFiles;
   private List<TsFileResource> unseqFiles;
 
@@ -65,6 +73,8 @@ public class MergeResource {
   public MergeResource() {
     this.seqFiles = new ArrayList<>();
     this.unseqFiles = new ArrayList<>();
+    this.mergingModification = new ModificationFile(
+        storageGroupSysDir + File.separator + MERGING_MODIFICATION_FILE_NAME);
   }
 
   public MergeResource(List<TsFileResource> seqFiles) {
@@ -256,7 +266,27 @@ public class MergeResource {
     this.chunkWriterCache = chunkWriterCache;
   }
 
+  public String getTaskName() {
+    return taskName;
+  }
+
+  public void setTaskName(String taskName) {
+    this.taskName = taskName;
+  }
+
+  public String getStorageGroupName() {
+    return storageGroupName;
+  }
+
+  public void setStorageGroupName(String storageGroupName) {
+    this.storageGroupName = storageGroupName;
+  }
+
   public void clearChunkWriterCache() {
     this.chunkWriterCache.clear();
+  }
+
+  public boolean isEmpty(){
+    return seqFiles.isEmpty();
   }
 }

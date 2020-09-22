@@ -57,10 +57,9 @@ import org.apache.iotdb.db.engine.merge.IRecoverMergeTask;
 import org.apache.iotdb.db.engine.merge.MergeTask;
 import org.apache.iotdb.db.engine.merge.manage.MergeManager;
 import org.apache.iotdb.db.engine.merge.manage.MergeResource;
-import org.apache.iotdb.db.engine.merge.seqMerge.SeqMergeFileStrategy;
+import org.apache.iotdb.db.engine.merge.seqMerge.MergeOverlappedFilesStrategy;
 import org.apache.iotdb.db.engine.merge.sizeMerge.SizeMergeFileStrategy;
 import org.apache.iotdb.db.engine.merge.sizeMerge.regularization.task.RegularizationMergeTask;
-import org.apache.iotdb.db.engine.merge.utils.SelectorContext;
 import org.apache.iotdb.db.engine.modification.Deletion;
 import org.apache.iotdb.db.engine.modification.Modification;
 import org.apache.iotdb.db.engine.modification.ModificationFile;
@@ -382,9 +381,9 @@ public class StorageGroupProcessor {
 
   private void recoverSeqMerge(List<TsFileResource> seqTsFiles, List<TsFileResource> unseqTsFiles,
       String taskName) throws IOException, MetadataException {
-    SeqMergeFileStrategy strategy = IoTDBDescriptor.getInstance().getConfig()
-        .getSeqMergeFileStrategy();
-    IRecoverMergeTask recoverMergeTask = strategy.getRecoverMergeTask(seqTsFiles,
+    MergeOverlappedFilesStrategy strategy = IoTDBDescriptor.getInstance().getConfig()
+        .getMergeOverlappedFilesStrategy();
+    IRecoverMergeTask recoverMergeTask = strategy.constructRecoverMergeTask(seqTsFiles,
         unseqTsFiles,
         storageGroupSysDir.getPath(), this::mergeEndAction, taskName, storageGroupName);
     logger.info("{} a RecoverSeqMergeTask {} starts...", storageGroupName, taskName);
@@ -880,11 +879,11 @@ public class StorageGroupProcessor {
    * inserted are in the range [start, end)
    *
    * @param insertTabletPlan insert a tablet of a device
-   * @param sequence whether is sequence
-   * @param start start index of rows to be inserted in insertTabletPlan
-   * @param end end index of rows to be inserted in insertTabletPlan
-   * @param results result array
-   * @param timePartitionId time partition id
+   * @param sequence         whether is sequence
+   * @param start            start index of rows to be inserted in insertTabletPlan
+   * @param end              end index of rows to be inserted in insertTabletPlan
+   * @param results          result array
+   * @param timePartitionId  time partition id
    * @return false if any failure occurs when inserting the tablet, true otherwise
    */
   private boolean insertTabletToTsFileProcessor(InsertTabletPlan insertTabletPlan,
@@ -968,7 +967,8 @@ public class StorageGroupProcessor {
 
     // try to update the latest time of the device of this tsRecord
     if (latestTimeForEachDevice.get(timePartitionId)
-        .getOrDefault(insertRowPlan.getDeviceId().getFullPath(), Long.MIN_VALUE) < insertRowPlan.getTime()) {
+        .getOrDefault(insertRowPlan.getDeviceId().getFullPath(), Long.MIN_VALUE) < insertRowPlan
+        .getTime()) {
       latestTimeForEachDevice.get(timePartitionId)
           .put(insertRowPlan.getDeviceId().getFullPath(), insertRowPlan.getTime());
     }
@@ -1038,10 +1038,10 @@ public class StorageGroupProcessor {
   /**
    * get processor from hashmap, flush oldest processor if necessary
    *
-   * @param timeRangeId time partition range
+   * @param timeRangeId            time partition range
    * @param tsFileProcessorTreeMap tsFileProcessorTreeMap
-   * @param fileList file list to add new processor
-   * @param sequence whether is sequence or not
+   * @param fileList               file list to add new processor
+   * @param sequence               whether is sequence or not
    */
   private TsFileProcessor getOrCreateTsFileProcessorIntern(long timeRangeId,
       TreeMap<Long, TsFileProcessor> tsFileProcessorTreeMap,
@@ -1415,7 +1415,8 @@ public class StorageGroupProcessor {
    */
   private List<TsFileResource> getFileResourceListForQuery(
       Collection<TsFileResource> tsFileResources, List<TsFileResource> upgradeTsFileResources,
-      PartialPath deviceId, String measurementId, QueryContext context, Filter timeFilter, boolean isSeq)
+      PartialPath deviceId, String measurementId, QueryContext context, Filter timeFilter,
+      boolean isSeq)
       throws MetadataException {
 
     MeasurementSchema schema = IoTDB.metaManager.getSeriesSchema(deviceId, measurementId);
@@ -1436,7 +1437,8 @@ public class StorageGroupProcessor {
         } else {
 
           tsFileResource.getUnsealedFileProcessor()
-              .query(deviceId.getFullPath(), measurementId, schema.getType(), schema.getEncodingType(),
+              .query(deviceId.getFullPath(), measurementId, schema.getType(),
+                  schema.getEncodingType(),
                   schema.getProps(), context, tsfileResourcesForQuery);
         }
       } catch (IOException e) {
@@ -1489,10 +1491,10 @@ public class StorageGroupProcessor {
    * Delete data whose timestamp <= 'timestamp' and belongs to the time series
    * deviceId.measurementId.
    *
-   * @param deviceId the deviceId of the timeseries to be deleted.
+   * @param deviceId      the deviceId of the timeseries to be deleted.
    * @param measurementId the measurementId of the timeseries to be deleted.
-   * @param startTime the startTime of delete range.
-   * @param endTime the endTime of delete range.
+   * @param startTime     the startTime of delete range.
+   * @param endTime       the endTime of delete range.
    */
   public void delete(PartialPath deviceId, String measurementId, long startTime, long endTime)
       throws IOException {
@@ -1524,7 +1526,8 @@ public class StorageGroupProcessor {
       logDeletion(startTime, endTime, deviceId, measurementId);
       // delete Last cache record if necessary
       tryToDeleteLastCache(deviceId, measurementId, startTime, endTime);
-      Deletion deletion = new Deletion(deviceId.concatNode(measurementId),MERGE_MOD_START_VERSION_NUM, startTime, endTime);
+      Deletion deletion = new Deletion(deviceId.concatNode(measurementId),
+          MERGE_MOD_START_VERSION_NUM, startTime, endTime);
       if (mergingModification != null) {
         mergingModification.write(deletion);
         updatedModFiles.add(mergingModification);
@@ -1765,14 +1768,14 @@ public class StorageGroupProcessor {
     }
   }
 
-  public void merge(boolean fullMerge) {
+  public void merge() {
     // merge seq data with unseq data files
-    seqMerge(fullMerge);
+    mergeOverlappedFiles();
     // merge only seq data files
-    sizeMerge();
+    mergeSmallFiles();
   }
 
-  private void seqMerge(boolean fullMerge) {
+  private void mergeOverlappedFiles() {
     writeLock();
     try {
       if (isMerging) {
@@ -1782,55 +1785,30 @@ public class StorageGroupProcessor {
         }
         return;
       }
-      logger.info("{} will close all files for starting a merge (fullmerge = {})", storageGroupName,
-          fullMerge);
 
-      if (unSequenceFileList.isEmpty() || sequenceFileTreeSet.isEmpty()) {
-        logger.info("{} no files to be merged", storageGroupName);
-        return;
-      }
-
-      long budget = IoTDBDescriptor.getInstance().getConfig().getMergeMemoryBudget();
-      long timeLowerBound = System.currentTimeMillis() - dataTTL;
-      SeqMergeFileStrategy strategy = IoTDBDescriptor.getInstance().getConfig()
-          .getSeqMergeFileStrategy();
-      IMergeFileSelector fileSelector = strategy.getFileSelector(sequenceFileTreeSet,
-          unSequenceFileList, budget, timeLowerBound);
+      MergeOverlappedFilesStrategy strategy = IoTDBDescriptor.getInstance().getConfig()
+          .getMergeOverlappedFilesStrategy();
+      // for partition
+      IMergeFileSelector fileSelector = strategy.constructFileSelector(sequenceFileTreeSet,
+          unSequenceFileList, dataTTL, storageGroupName);
       try {
-        Pair<MergeResource, SelectorContext> selectRes = fileSelector.selectMergedFiles();
-        MergeResource mergeResource = selectRes.left;
-        if (mergeResource.getSeqFiles().size() == 0 || mergeResource.getUnseqFiles().size() == 0) {
-          logger.info("{} cannot select merge candidates under the budget {}", storageGroupName,
-              budget);
+        MergeResource mergeResource = fileSelector.selectOverlappedFiles();
+        if (mergeResource == null) {
           return;
         }
-        // avoid pending tasks holds the metadata and streams
-        mergeResource.clear();
-        String taskName = storageGroupName + "-" + System.currentTimeMillis();
-        // do not cache metadata until true candidates are chosen, or too much metadata will be
-        // cached during selection
-        mergeResource.setCacheDeviceMeta(true);
-
-        for (TsFileResource tsFileResource : mergeResource.getSeqFiles()) {
-          tsFileResource.setMerging(true);
-        }
-        for (TsFileResource tsFileResource : mergeResource.getUnseqFiles()) {
-          tsFileResource.setMerging(true);
-        }
-        MergeTask mergeTask = strategy.getMergeTask(mergeResource,
-            storageGroupSysDir.getPath(), this::mergeEndAction, taskName, storageGroupName,
-            fullMerge);
-        mergingModification = new ModificationFile(
-            storageGroupSysDir + File.separator + MERGING_MODIFICATION_FILE_NAME);
+        MergeTask mergeTask = strategy
+            .constructMergeTask(mergeResource, storageGroupSysDir.getPath(), this::mergeEndAction,
+                mergeResource.getTaskName(), storageGroupName);
         MergeManager.getINSTANCE().submitMainTask(mergeTask);
+
         if (logger.isInfoEnabled()) {
           logger.info("{} submits a merge task {}, merging {} seqFiles, {} unseqFiles",
-              storageGroupName, taskName, mergeResource.getSeqFiles().size(),
+              storageGroupName, mergeResource.getTaskName(), mergeResource.getSeqFiles().size(),
               mergeResource.getUnseqFiles().size());
         }
         isMerging = true;
         mergeStartTime = System.currentTimeMillis();
-      } catch (MergeException | IOException e) {
+      } catch (MergeException e) {
         logger.error("{} cannot select file for merge", storageGroupName, e);
       }
     } finally {
@@ -1838,7 +1816,7 @@ public class StorageGroupProcessor {
     }
   }
 
-  private void sizeMerge() {
+  private void mergeSmallFiles() {
     writeLock();
     try {
       if (isMerging) {
@@ -1881,8 +1859,6 @@ public class StorageGroupProcessor {
         }
         MergeTask mergeTask = strategy.getMergeTask(mergeResource,
             storageGroupSysDir.getPath(), this::mergeEndAction, taskName, storageGroupName);
-        mergingModification = new ModificationFile(
-            storageGroupSysDir + File.separator + MERGING_MODIFICATION_FILE_NAME);
         MergeManager.getINSTANCE().submitMainTask(mergeTask);
         if (logger.isInfoEnabled()) {
           logger.info("{} submits a merge task {}, merging {} seqFiles",
@@ -2368,9 +2344,9 @@ public class StorageGroupProcessor {
    * returns directly; otherwise, the time stamp is the mean of the timestamps of the two files, the
    * version number is the version number in the tsfile with a larger timestamp.
    *
-   * @param tsfileName origin tsfile name
+   * @param tsfileName  origin tsfile name
    * @param insertIndex the new file will be inserted between the files [insertIndex, insertIndex +
-   * 1]
+   *                    1]
    * @return appropriate filename
    */
   private String getFileNameForLoadingFile(String tsfileName, int insertIndex,
@@ -2434,8 +2410,8 @@ public class StorageGroupProcessor {
   /**
    * Execute the loading process by the type.
    *
-   * @param type load type
-   * @param tsFileResource tsfile resource to be loaded
+   * @param type            load type
+   * @param tsFileResource  tsfile resource to be loaded
    * @param filePartitionId the partition id of the new file
    * @return load the file successfully
    * @UsedBy sync module, load external tsfile module.

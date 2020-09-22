@@ -31,7 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.apache.iotdb.db.conf.IoTDBDescriptor;
 import org.apache.iotdb.db.engine.StorageEngine;
-import org.apache.iotdb.db.engine.merge.seqMerge.SeqMergeFileStrategy;
+import org.apache.iotdb.db.engine.merge.seqMerge.MergeOverlappedFilesStrategy;
 import org.apache.iotdb.db.exception.StorageEngineException;
 import org.apache.iotdb.db.exception.metadata.IllegalPathException;
 import org.apache.iotdb.db.metadata.PartialPath;
@@ -51,7 +51,8 @@ public class IoTDBRemovePartitionIT {
     EnvironmentUtils.envSetUp();
     StorageEngine.setEnablePartition(true);
     StorageEngine.setTimePartitionInterval(partitionInterval);
-    IoTDBDescriptor.getInstance().getConfig().setSeqMergeFileStrategy(SeqMergeFileStrategy.INPLACE);
+    IoTDBDescriptor.getInstance().getConfig().setMergeOverlappedFilesStrategy(
+        MergeOverlappedFilesStrategy.INPLACE);
     insertData();
   }
 
@@ -60,7 +61,8 @@ public class IoTDBRemovePartitionIT {
     EnvironmentUtils.cleanEnv();
     StorageEngine.setEnablePartition(false);
     StorageEngine.setTimePartitionInterval(-1);
-    IoTDBDescriptor.getInstance().getConfig().setSeqMergeFileStrategy(SeqMergeFileStrategy.SQUEEZE);
+    IoTDBDescriptor.getInstance().getConfig().setMergeOverlappedFilesStrategy(
+        MergeOverlappedFilesStrategy.SQUEEZE);
   }
 
   @Test

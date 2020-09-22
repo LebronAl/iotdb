@@ -26,7 +26,7 @@ import java.time.ZoneId;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.iotdb.db.conf.directories.DirectoryManager;
-import org.apache.iotdb.db.engine.merge.seqMerge.SeqMergeFileStrategy;
+import org.apache.iotdb.db.engine.merge.seqMerge.MergeOverlappedFilesStrategy;
 import org.apache.iotdb.db.engine.merge.sizeMerge.MergeSizeSelectorStrategy;
 import org.apache.iotdb.db.engine.merge.sizeMerge.SizeMergeFileStrategy;
 import org.apache.iotdb.db.exception.LoadConfigurationException;
@@ -520,7 +520,7 @@ public class IoTDBConfig {
    */
   private int chunkMergePointThreshold = 20480;
 
-  private SeqMergeFileStrategy seqMergeFileStrategy = SeqMergeFileStrategy.SQUEEZE;
+  private MergeOverlappedFilesStrategy mergeOverlappedFilesStrategy = MergeOverlappedFilesStrategy.SQUEEZE;
 
   private SizeMergeFileStrategy sizeMergeFileStrategy = SizeMergeFileStrategy.REGULARIZATION;
 
@@ -1238,17 +1238,17 @@ public class IoTDBConfig {
     this.memtableSizeThreshold = memtableSizeThreshold;
   }
 
-  public SeqMergeFileStrategy getSeqMergeFileStrategy() {
-    return seqMergeFileStrategy;
+  public MergeOverlappedFilesStrategy getMergeOverlappedFilesStrategy() {
+    return mergeOverlappedFilesStrategy;
   }
 
   public SizeMergeFileStrategy getSizeMergeFileStrategy() {
     return sizeMergeFileStrategy;
   }
 
-  public void setSeqMergeFileStrategy(
-      SeqMergeFileStrategy seqMergeFileStrategy) {
-    this.seqMergeFileStrategy = seqMergeFileStrategy;
+  public void setMergeOverlappedFilesStrategy(
+      MergeOverlappedFilesStrategy mergeOverlappedFilesStrategy) {
+    this.mergeOverlappedFilesStrategy = mergeOverlappedFilesStrategy;
   }
 
   public int getAvgSeriesPointNumberThreshold() {

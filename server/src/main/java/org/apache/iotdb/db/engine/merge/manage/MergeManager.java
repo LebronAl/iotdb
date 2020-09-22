@@ -105,13 +105,13 @@ public class MergeManager implements IService, MergeManagerMBean {
       }
 
       mergeTaskPool = new MergeThreadPool(threadNum,
-          r -> new Thread(r, "MergeThread-" + threadCnt.getAndIncrement()));
+          r -> new Thread(r, "MergeThread-" + threadCnt.getAndIncrement()));// 提交MergeTask的线程，用于将合并分解为小合并任务
       mergeChunkSubTaskPool = new MergeThreadPool(threadNum * chunkSubThreadNum,
-          r -> new Thread(r, "MergeChunkSubThread-" + threadCnt.getAndIncrement()));
+          r -> new Thread(r, "MergeChunkSubThread-" + threadCnt.getAndIncrement()));// 提交MergeTask子线（用于并行进行小合并任务）
       long mergeInterval = IoTDBDescriptor.getInstance().getConfig().getMergeIntervalSec();
       if (mergeInterval > 0) {
         timedMergeThreadPool = Executors.newSingleThreadScheduledExecutor(r -> new Thread(r,
-            "TimedMergeThread"));
+            "TimedMergeThread"));//总的合并线程，定时调用全局合并，用于选择文件
         timedMergeThreadPool.scheduleAtFixedRate(this::mergeAll, mergeInterval,
             mergeInterval, TimeUnit.SECONDS);
       }

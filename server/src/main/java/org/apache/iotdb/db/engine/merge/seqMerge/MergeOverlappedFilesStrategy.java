@@ -21,27 +21,26 @@ package org.apache.iotdb.db.engine.merge.seqMerge;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.Callable;
 import org.apache.iotdb.db.conf.IoTDBDescriptor;
 import org.apache.iotdb.db.engine.merge.IMergeFileSelector;
 import org.apache.iotdb.db.engine.merge.IRecoverMergeTask;
 import org.apache.iotdb.db.engine.merge.MergeCallback;
 import org.apache.iotdb.db.engine.merge.MergeTask;
+import org.apache.iotdb.db.engine.merge.manage.MergeResource;
 import org.apache.iotdb.db.engine.merge.seqMerge.inplace.selector.InplaceMaxFileSelector;
 import org.apache.iotdb.db.engine.merge.seqMerge.inplace.task.InplaceMergeTask;
 import org.apache.iotdb.db.engine.merge.seqMerge.inplace.task.RecoverInplaceMergeTask;
-import org.apache.iotdb.db.engine.merge.manage.MergeResource;
 import org.apache.iotdb.db.engine.merge.seqMerge.squeeze.selector.SqueezeMaxFileSelector;
 import org.apache.iotdb.db.engine.merge.seqMerge.squeeze.task.RecoverSqueezeMergeTask;
 import org.apache.iotdb.db.engine.merge.seqMerge.squeeze.task.SqueezeMergeTask;
 import org.apache.iotdb.db.engine.storagegroup.TsFileResource;
 
-public enum SeqMergeFileStrategy {
+public enum MergeOverlappedFilesStrategy {
   INPLACE,
   SQUEEZE;
   // TODO new strategies?
 
-  public IMergeFileSelector getFileSelector(Collection<TsFileResource> seqFiles,
+  public IMergeFileSelector constructFileSelector(Collection<TsFileResource> seqFiles,
       Collection<TsFileResource> unseqFiles, long budget, long timeLowerBound) {
     switch (this) {
       case INPLACE:
@@ -52,7 +51,7 @@ public enum SeqMergeFileStrategy {
     }
   }
 
-  public MergeTask getMergeTask(MergeResource mergeResource, String storageGroupSysDir,
+  public MergeTask constructMergeTask(MergeResource mergeResource, String storageGroupSysDir,
       MergeCallback callback, String taskName, String storageGroupName,
       boolean isFullMerge) {
     switch (this) {
@@ -66,7 +65,7 @@ public enum SeqMergeFileStrategy {
     return null;
   }
 
-  public IRecoverMergeTask getRecoverMergeTask(List<TsFileResource> seqTsFiles,
+  public IRecoverMergeTask constructRecoverMergeTask(List<TsFileResource> seqTsFiles,
       List<TsFileResource> unseqTsFiles, String storageGroupSysDir, MergeCallback callback,
       String taskName, String storageGroupName) {
     switch (this) {
