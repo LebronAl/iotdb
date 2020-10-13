@@ -22,13 +22,9 @@ package org.apache.iotdb.cluster.utils;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.iotdb.cluster.config.ClusterConfig;
@@ -39,7 +35,6 @@ import org.apache.iotdb.cluster.partition.PartitionGroup;
 import org.apache.iotdb.cluster.rpc.thrift.CheckStatusResponse;
 import org.apache.iotdb.cluster.rpc.thrift.Node;
 import org.apache.iotdb.cluster.rpc.thrift.StartUpStatus;
-import org.apache.iotdb.cluster.server.RaftServer;
 import org.apache.iotdb.cluster.server.member.MetaGroupMember;
 import org.apache.iotdb.db.conf.IoTDBDescriptor;
 import org.apache.iotdb.db.exception.metadata.MetadataException;
@@ -224,15 +219,16 @@ public class ClusterUtils {
 
   public static boolean analyseStartUpCheckResult(int consistentNum, int inconsistentNum,
       int totalSeedNum) throws ConfigInconsistentException {
-    if (consistentNum == totalSeedNum) {
+    int quorum = (totalSeedNum + 1) / 2;
+    if (consistentNum >= quorum) {
       // break the loop and establish the cluster
       return true;
-    } else if (inconsistentNum == 0) {
-      // can't connect other nodes, try in next turn
-      return false;
-    } else {
-      // find config InConsistence, stop building cluster
+    } else if (inconsistentNum >= quorum) {
+      // this node is not consistent with the cluster, shut down
       throw new ConfigInconsistentException();
+    } else {
+      // find config InConsistence, try to check in next turn
+      return false;
     }
   }
 

@@ -456,8 +456,8 @@ public class MetaGroupMember extends RaftMember {
         logger.info("Partition table is set up");
       }
       router = new ClusterPlanRouter(partitionTable);
-      startSubServers();
     }
+    startSubServers();
   }
 
   private void threadTaskInit() {
@@ -758,15 +758,13 @@ public class MetaGroupMember extends RaftMember {
    */
   protected synchronized void startSubServers() {
     logger.info("Starting sub-servers...");
-    synchronized (partitionTable) {
-      try {
-        initSubServers();
-        getDataClusterServer().buildDataGroupMembers(partitionTable);
-      } catch (TTransportException | StartupException e) {
-        logger.error("Build partition table failed: ", e);
-        stop();
-        return;
-      }
+    try {
+      initSubServers();
+      getDataClusterServer().buildDataGroupMembers(partitionTable);
+    } catch (TTransportException | StartupException e) {
+      logger.error("Build partition table failed: ", e);
+      stop();
+      return;
     }
     logger.info("Sub-servers started.");
   }
